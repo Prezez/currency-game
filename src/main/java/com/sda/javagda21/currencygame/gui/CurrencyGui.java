@@ -1,5 +1,8 @@
 package com.sda.javagda21.currencygame.gui;
+
 import com.sda.javagda21.currencygame.controller.CurrencyClient;
+import com.sda.javagda21.currencygame.entity.CurrencyRank;
+import com.sda.javagda21.currencygame.repository.CurrencyRankRepo;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Label;
@@ -8,22 +11,23 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Route;
 import org.springframework.beans.factory.annotation.Autowired;
-
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Route("game")
 public class CurrencyGui extends VerticalLayout {
 
     @Autowired
-    public CurrencyGui(CurrencyClient currencyClient) {
+    public CurrencyGui(CurrencyClient currencyClient, CurrencyRankRepo currencyRankRepo) {
 
         AtomicInteger counter = new AtomicInteger();
         Double eur = currencyClient.getCurrencyRates().getRates().getEUR();
         BigDecimal bigDecimalRawCurrency = new BigDecimal(eur);
-        BigDecimal bigDecimalPlnValue  = new BigDecimal(1);
+        BigDecimal bigDecimalPlnValue = new BigDecimal(1);
         BigDecimal bigDecimalToGuess = bigDecimalPlnValue.divide(bigDecimalRawCurrency, 2, RoundingMode.CEILING);
 
         Label labelCurrencyFrom = new Label("Z waluty");
@@ -45,9 +49,13 @@ public class CurrencyGui extends VerticalLayout {
             String greaterMessage = "za mało";
             if (result == 0) {
                 labelResult.setText(winMessage);
-                labelFinnalResult.setText("GRATULACJE! udao się za " + counter.incrementAndGet());
+                labelFinnalResult.setText("GRATULACJE! udao się za " + counter.incrementAndGet() + " razem");
 
-                add(new Image("https://media1.giphy.com/media/2sXf9PbHcEdE1x059I/giphy.gif","super!"));
+                add(new Image("https://media1.giphy.com/media/2sXf9PbHcEdE1x059I/giphy.gif", "super!"));
+
+                Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+                CurrencyRank currencyRank = new CurrencyRank(principal.toString(), counter.get(), LocalDate.now());
+                currencyRankRepo.save(currencyRank);
 
             } else if (result >= 1) {
                 labelResult.setText(smallMessage);
@@ -62,7 +70,8 @@ public class CurrencyGui extends VerticalLayout {
         hl2.add(textFieldUserValue, button, labelResult);
 
 
-
         add(hl1, hl2, labelFinnalResult);
+
+
     }
 }
